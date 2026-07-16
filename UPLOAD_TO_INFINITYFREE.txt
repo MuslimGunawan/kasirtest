@@ -1,0 +1,6 @@
+1. Upload semua file folder proyek ke public_html hosting.
+2. Pastikan folder public_html Anda berisi file index.php, .htaccess, dan aset publik Laravel.
+3. Edit file .env dan isi database MySQL InfinityFree.
+4. Jika hosting tidak mengizinkan artisan, cukup upload vendor yang sudah ada.
+5. Jika muncul error 500, pastikan storage dan bootstrap/cache writable.
+6. Buka domain Anda, biasanya akan langsung menampilkan aplikasi Laravel.

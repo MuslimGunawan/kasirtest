@@ -1,0 +1,14 @@
+/* Global override for website text color */
+html, body, body * {
+    color: #000 !important;
+}
+
+/* Preserve buttons and links if they intentionally need different colors */
+button, input, select, textarea, a, .btn, .btn * {
+    color: inherit !important;
+}
+
+/* Force form controls text black for better visibility */
+input, textarea, select, button {
+    color: #000 !important;
+}
