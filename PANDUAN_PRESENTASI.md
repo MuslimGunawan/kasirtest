@@ -256,7 +256,82 @@ if ($request->has('activate') && $request->has('id')) {
 
 ---
 
-## 💾 10. Konfigurasi Database & Kompatibilitas Legacy Code
+## 🛠️ 10. Halaman Fitur / Keunggulan
+* **Lokasi File View:** `resources\views\features.blade.php`
+* **Lokasi Controller:** `app\Http\Controllers\SiteController.php` (Baris 43-46)
+
+```html
+@extends('layouts.site')
+@section('title', 'Fitur - SmartKasir')
+@section('content')
+    <!-- Menampilkan rincian fitur-fitur masa depan secara detail -->
+    ...
+@endsection
+```
+
+---
+
+## 👥 11. Halaman Tentang Kami (Tim Pengembang)
+* **Lokasi File View:** `resources\views\about.blade.php`
+* **Lokasi Controller:** `app\Http\Controllers\SiteController.php` (Baris 48-51)
+
+### Kutipan Kode Penting (Mempertahankan Ukuran Gambar/Foto Tim Asli Tanpa Terpotong):
+```css
+.team-img-wrapper img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; /* Mempertahankan rasio gambar asli agar tidak terpotong (crop) */
+    display: block;
+    transition: transform 0.5s ease;
+}
+```
+
+💡 **Cara Menjawab Pertanyaan Dosen:**
+> *"Halaman Tentang Kami menampilkan profil mahasiswa tim pengembang dari Universitas Malikussaleh. Agar foto profil pengembang di kartu tim (`team-card`) tidak terpotong (crop) secara tidak rapi, kami mengatur gaya CSS `.team-img-wrapper img` menggunakan properti `object-fit: contain` di baris 25, sehingga rasio ukuran asli gambar tetap dipertahankan."*
+
+---
+
+## ✉️ 12. Halaman Hubungi Kami (Formulir Kontak)
+* **Lokasi File View:** `resources\views\contact.blade.php`
+* **Lokasi Controller (Kirim Pesan):** `app\Http\Controllers\SiteController.php` (Baris 68-82)
+
+### A. Tag Form di View
+```html
+<form method="POST" action="{{ route('kirim-kontak') }}">
+    @csrf
+    <input type="text" name="nama" required>
+    <input type="email" name="email" required>
+    <input type="text" name="subjek" required>
+    <textarea name="pesan" required></textarea>
+    <button type="submit">Kirim Pesan</button>
+</form>
+```
+
+### B. Proses Penyimpanan Data di Controller
+```php
+public function kirimKontak(Request $request)
+{
+    $data = $request->validate([
+        'nama' => 'required|string|max:255',
+        'email' => 'required|email|max:255',
+        'subjek' => 'required|string|max:255',
+        'pesan' => 'required|string',
+    ]);
+
+    // Memasukkan pesan kontak langsung ke database
+    DB::table('pesan_kontak')->insert($data);
+
+    Session::flash('success', 'Pesan Anda berhasil dikirim.');
+    return redirect()->route('kontak');
+}
+```
+
+💡 **Cara Menjawab Pertanyaan Dosen:**
+> *"Halaman Kontak menyediakan formulir 'Kirim Pesan'. Ketika tombol dikirim, kueri POST diarahkan ke fungsi `kirimKontak()` di `app\Http\Controllers\SiteController.php`. Data divalidasi terlebih dahulu sebelum dimasukkan langsung ke tabel database `pesan_kontak` menggunakan model Query Builder `DB::table()->insert()`."*
+
+---
+
+## 💾 13. Konfigurasi Database & Kompatibilitas Legacy Code
 * **File Kredensial Database Laravel:** `.env`
 * **File Konfigurasi Database Laravel:** `config\database.php`
 * **File Koneksi Database PHP Native:** `public\config\database.php`
