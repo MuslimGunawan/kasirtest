@@ -23,7 +23,7 @@ Panduan ini dibuat khusus untuk mempermudah Anda menjelaskan letak file kodingan
 
 ---
 
-## 🚀 2. Halaman Utama / Home (Screenshot 1, 2, & 3)
+## 🚀 2. Halaman Utama / Home (Halaman Depan Publik)
 
 ### A. Judul & Tombol Hero
 * **Lokasi File:** `resources\views\home.blade.php` (Baris 201-217)
@@ -42,7 +42,7 @@ Panduan ini dibuat khusus untuk mempermudah Anda menjelaskan letak file kodingan
 
 ---
 
-### B. Kartu Informasi Toko (Screenshot 2)
+### B. Kartu Informasi Toko
 * **Lokasi File:** `resources\views\home.blade.php` (Baris 227-243)
 
 ```html
@@ -56,7 +56,7 @@ Panduan ini dibuat khusus untuk mempermudah Anda menjelaskan letak file kodingan
 
 ---
 
-### C. Kolom Fitur Keunggulan (Screenshot 3)
+### C. Kolom Fitur Keunggulan
 * **Lokasi File:** `resources\views\home.blade.php` (Baris 307-344)
 
 ```html
@@ -75,7 +75,7 @@ Panduan ini dibuat khusus untuk mempermudah Anda menjelaskan letak file kodingan
 
 ---
 
-## 🌐 3. Halaman Footer Publik (Screenshot 4)
+## 🌐 3. Halaman Footer Publik
 * **Lokasi File:** `resources\views\layouts\site.blade.php` (Baris 108-145)
 
 ```html
@@ -107,7 +107,6 @@ public function authenticate(Request $request)
     $user = trim($request->input('user'));
     $pass = trim($request->input('pass'));
 
-    // Autentikasi mencocokkan user dan hash MD5 password dengan tabel member & login
     $member = DB::table('member')
         ->join('login', 'member.id_member', '=', 'login.id_member')
         ->where('login.user', $user)
@@ -127,11 +126,11 @@ public function authenticate(Request $request)
 ```
 
 💡 **Cara Menjawab Pertanyaan Dosen:**
-> *"Proses login dikontrol oleh fungsi `authenticate()` di file `app\Http\Controllers\SiteController.php`. Fungsi ini mencocokkan username dan meng-hash input password dengan MD5 sebelum dicocokkan ke database. Jika sukses, data member akan disimpan ke dalam Session Laravel (`Session::put()`)."*
+> *"Proses login dikontrol oleh fungsi `authenticate()` di file `app\Http\Controllers\SiteController.php`. Sesi login disimpan di dalam Laravel Session menggunakan `Session::put()` jika status kasir dinyatakan Aktif (`status === 1`)."*
 
 ---
 
-## 📊 5. Dasbor Utama Admin Panel
+## 📊 5. Dasbor Utama Admin Panel (Dashboard Home)
 * **Lokasi File Dispatcing Page:** `resources\views\dashboard.blade.php`
 * **Lokasi File View Dasbor:** `resources\views\admin\home.blade.php`
 * **Lokasi Data Logika Controller:** `app\Http\Controllers\SiteController.php` (Baris 119-256)
@@ -154,14 +153,110 @@ public function dashboard(Request $request)
 }
 ```
 
+---
+
+## 📦 6. Modul Data Barang (Data Master)
+* **Lokasi File View:** `resources\views\admin\barang.blade.php`
+* **Lokasi Logika Controller:** `app\Http\Controllers\SiteController.php` (Baris 212-230)
+
+### A. Summary Kalkulasi Total di Bagian Footer Tabel
+```html
+<tfoot>
+    <tr class="fw-bold text-white">
+        <td colspan="5" class="text-end">Total Summary:</td>
+        <td>{{ number_format($totalStok) }}</td>
+        <td>Rp {{ number_format($totalBeli, 0, ',', '.') }}</td>
+        <td>Rp {{ number_format($totalJual, 0, ',', '.') }}</td>
+        <td colspan="2"></td>
+    </tr>
+</tfoot>
+```
+
+### B. Notifikasi Otomatis Stok Menipis (Kritis)
+```html
+@if((int)$isi->stok === 0)
+    <span class="badge bg-danger rounded px-2">Habis</span>
+@elseif((int)$isi->stok <= 3)
+    <span class="badge bg-warning text-dark rounded px-2">{{ $isi->stok }} (Kritis)</span>
+@else
+    <span class="badge bg-secondary bg-opacity-20 text-white rounded px-2">{{ $isi->stok }}</span>
+@endif
+```
+
 💡 **Cara Menjawab Pertanyaan Dosen:**
-> *"Untuk membatasi akses admin panel dari tamu yang belum login, kami menggunakan pemeriksaan Session `Session::has('admin')` pada baris pertama fungsi `dashboard()`. Jika tidak memiliki sesi login, user secara otomatis akan dilempar/di-redirect kembali ke halaman login."*
+> *"Total akumulasi stok barang, modal beli, dan nilai jual dihitung otomatis menggunakan perulangan PHP loop di view `resources\views\admin\barang.blade.php`. Jika stok barang berada di bawah atau sama dengan 3, sistem secara otomatis memberikan lencana (badge) berwarna kuning 'Kritis' untuk memberi tahu kasir/manajer agar segera melakukan restok."*
 
 ---
 
-## 💾 6. Konfigurasi Database & Kompatibilitas Legacy Code
-Untuk memastikan fungsionalitas Laravel dan file-file PHP Native lama (seperti cetak nota, export excel, proses hapus/tambah) berjalan beriringan menggunakan database yang sama:
+## 🛒 7. Modul Kasir POS / Keranjang Penjualan (Halaman Transaksi)
+* **Lokasi File View:** `resources\views\admin\jual.blade.php`
+* **Lokasi Fungsi Tambah/Kurang/Checkout:** `public\fungsi\tambah\tambah.php` dan `public\fungsi\edit\edit.php`
 
+### A. Pencarian Barang Instan Menggunakan AJAX
+```javascript
+$("#cari").keyup(function(){
+    $.ajax({
+        type: "POST",
+        url: "fungsi/edit/edit.php?cari_barang=yes",
+        data:'keyword='+$(this).val(),
+        success: function(html){
+            $("#hasil_cari").html(html);
+        }
+    });
+});
+```
+
+### B. Transaksi Final & Pengurangan Stok Otomatis
+```html
+<form method="POST" action="/dashboard?page=jual&nota=yes#kasirnya">
+    @csrf
+    <!-- Pengurangan stok barang dilakukan saat checkout final nota -->
+    ...
+</form>
+```
+
+💡 **Cara Menjawab Pertanyaan Dosen:**
+> *"Pencarian barang menggunakan AJAX keyup event. Setiap kali pengguna mengetik karakter di kolom pencarian, javascript mengirim kueri POST ke `fungsi/edit/edit.php?cari_barang=yes` secara asinkron (tanpa refresh halaman). Setelah kasir menginput nominal bayar dan meng-klik tombol Bayar, item dalam keranjang sementara (`penjualan`) dipindahkan ke tabel transaksi (`nota`) dan stok barang di tabel `barang` dikurangi secara otomatis."*
+
+---
+
+## 📅 8. Modul Laporan Penjualan (Harian & Bulanan)
+* **Lokasi File View:** `resources\views\admin\laporan.blade.php`
+
+### Kalkulasi Keuntungan Bersih (Profit Margin)
+```php
+@php
+    $modal_bersih = $isi->harga_beli * $isi->jumlah;
+    $keuntungan = $isi->total - $modal_bersih;
+    
+    $bayar += $isi->total;
+    $jumlah += $isi->jumlah;
+    $modal += $modal_bersih;
+@endphp
+```
+
+💡 **Cara Menjawab Pertanyaan Dosen:**
+> *"Keuntungan bersih dihitung dari akumulasi harga jual produk dikurangi harga modal beli produk dikalikan jumlah barang yang terjual. Kueri data laporan difilter berdasarkan parameter input bulan/tahun atau tanggal harian yang dikirim lewat formulir cari."*
+
+---
+
+## 👥 9. Modul Manajemen Kasir (Aktivasi Akun & Hapus)
+* **Lokasi File View:** `resources\views\admin\kasir.blade.php`
+* **Lokasi Aksi Controller:** `app\Http\Controllers\SiteController.php` (Baris 167-183)
+
+```php
+if ($request->has('activate') && $request->has('id')) {
+    DB::table('member')->where('id_member', $request->query('id'))->update(['status' => 1]);
+    return redirect()->route('dashboard', ['page' => 'kasir'])->with('success', 'Kasir berhasil diaktifkan.');
+}
+```
+
+💡 **Cara Menjawab Pertanyaan Dosen:**
+> *"Akun kasir yang baru didaftarkan tidak dapat langsung masuk ke sistem sebelum diaktifkan oleh Manajer. Manajer dapat mengaktifkan akun tersebut melalui tombol 'Aktifkan' yang mengirim parameter kueri ke `SiteController.php` untuk merubah kolom `status` menjadi `1` di tabel database `member`."*
+
+---
+
+## 💾 10. Konfigurasi Database & Kompatibilitas Legacy Code
 * **File Kredensial Database Laravel:** `.env`
 * **File Konfigurasi Database Laravel:** `config\database.php`
 * **File Koneksi Database PHP Native:** `public\config\database.php`
